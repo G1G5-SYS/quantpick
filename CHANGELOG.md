@@ -24,6 +24,8 @@
   真实数据全量回归可手动触发。
 - `CONTRIBUTING.md`、`SECURITY.md`、`.github` Issue / PR 模板、`.editorconfig`。
 - `docs/RELEASING.md`：发布流程（打 tag、上传桌面版到 Releases、部署校验）。
+- `deploy/check.js`：部署自检从 6 项扩到 9 项，新增三项静态守卫断言
+  （`/server.js`、`/.git/config`、路径穿越均应为 403），让部署后的自检能直接发现守卫失效。
 
 ### 变更
 
