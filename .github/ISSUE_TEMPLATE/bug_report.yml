@@ -1,0 +1,92 @@
+name: 🐞 Bug 反馈
+description: 报告可复现的问题(界面异常、接口报错、计算结果存疑、文档与实际不符)
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先确认：
+
+        - **不要粘贴任何账号、自选股、持仓等个人数据**；
+        - 安全漏洞请不要开公开 Issue，见 [SECURITY.md](../blob/main/SECURITY.md)；
+        - 本项目数据全部来自第三方公开接口，**接口本身限流或改版属于已知风险**，
+          请说明报错位置，便于区分“接口不可用”与“代码缺陷”。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及模块
+      options:
+        - 大盘晴雨表 / 榜单中心
+        - 行情中心 / 个股详情
+        - 条件选股
+        - AI 智能分析(预测选股 / 个股诊断 / AI 对话)
+        - 策略回测 / 复盘台账
+        - 自选股 / 消息提醒
+        - 系统设置
+        - 官网(website)
+        - 数据服务 / API(server.js)
+        - 测试或文档
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 现象与复现步骤
+      description: 越具体越好：点了哪里、期望看到什么、实际看到什么。
+      placeholder: |
+        1. 打开 …
+        2. 点击 …
+        3. 期望 …，实际 …
+    validations:
+      required: true
+
+  - type: input
+    id: page
+    attributes:
+      label: 页面路由(如果是界面问题)
+      description: 地址栏里 # 后面的部分，例如 #/predict、#/ranks。
+      placeholder: "#/predict"
+    validations:
+      required: false
+
+  - type: textarea
+    id: console
+    attributes:
+      label: 浏览器控制台错误 / 服务端日志
+      description: 打开 F12 控制台，或复制终端里 server.js 的输出（请先删掉个人数据）。
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: 你的使用方式
+      options:
+        - 在线版 xinghuo1.org
+        - 本地 node server.js
+        - Windows 桌面版(exe)
+        - 自己部署(云服务器 / 反代)
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 运行环境
+      description: 操作系统 + Node 版本(本地运行时填写)。
+      placeholder: Windows 11 26100 / Node v24.16.0
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我已确认这不是“第三方数据接口暂时不可用”导致的(或已在上面说明)
+          required: true
+        - label: 我确认内容中不含个人账号、自选股、持仓等隐私数据
+          required: true

@@ -1,0 +1,80 @@
+# QuantPick CI
+#
+# 两个任务的分工:
+#   offline    —— push / PR 触发。只跑不依赖数据服务的套件,不访问任何外部数据源,
+#                 因此上游接口抖动不会把 CI 弄红;它要挡住的是代码回归
+#                 (例如界面把新增字段拼成 "undefined" 这类问题)。
+#   real-data  —— 仅手动触发(workflow_dispatch)。跑 _smoke/run-isolated.ps1 全量回归,
+#                 需要外网访问东方财富 / 腾讯公开接口,上游限流或变更时可能失败,
+#                 故不阻塞:它的作用是"发版前的人工体检",不是门禁。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    name: 离线回归 (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.x', '24.x']
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: _smoke/package-lock.json
+
+      - name: 应用本体语法检查
+        run: |
+          for f in server.js js/*.js; do node --check "$f"; done
+
+      - name: 安装测试依赖
+        working-directory: _smoke
+        run: npm ci --no-audit --no-fund
+
+      - name: 运行离线套件
+        working-directory: _smoke
+        run: |
+          for t in run.js predict-engine.js review-history.js snapshot-sync.js website-smoke.js; do
+            echo "::group::$t"
+            node "$t"
+            echo "::endgroup::"
+          done
+
+  real-data:
+    name: 真实数据全量回归(手动触发)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: _smoke/package-lock.json
+
+      - name: 安装测试依赖
+        working-directory: _smoke
+        run: npm ci --no-audit --no-fund
+
+      - name: 隔离实例全量回归(独立端口 8091 + 独立数据目录)
+        working-directory: _smoke
+        shell: pwsh
+        run: ./run-isolated.ps1

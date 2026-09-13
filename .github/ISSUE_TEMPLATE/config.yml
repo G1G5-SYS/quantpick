@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全问题反馈方式
+    url: https://github.com/G1G5-SYS/quantpick/blob/main/SECURITY.md
+    about: 安全相关的问题请先阅读 SECURITY.md，不要开公开 Issue
+  - name: 部署与打包文档
+    url: https://github.com/G1G5-SYS/quantpick/tree/main/deploy
+    about: 云服务器 / Nginx / HTTPS / Windows 桌面版打包

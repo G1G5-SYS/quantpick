@@ -1,0 +1,49 @@
+name: 💡 功能建议
+description: 提出新功能、数据源或界面改进建议
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提建议前请留意本项目的两条硬约束（详见 [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md)）：
+
+        - **应用本体零依赖**：后端只用 Node 内置模块，不引入任何运行时 npm 包；
+        - **只用真实数据**：数据源不可用时页面明确报错，绝不退化成模拟数据。
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 建议类型
+      options:
+        - 新功能(选股 / 预测 / 回测)
+        - 新数据源或新指标
+        - 界面与交互改进
+        - 性能优化
+        - 文档与部署
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题
+      description: 先说问题，再说方案——这比直接给方案更有用。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的实现方式(可选)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: 约束确认
+      options:
+        - label: 该建议不需要引入运行时 npm 依赖（或我已说明为何必须引入）
+          required: false
+        - label: 该建议所需数据来自可公开访问的接口（或我已说明来源）
+          required: false

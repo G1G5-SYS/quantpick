@@ -1,15 +1,19 @@
 {
-  "name": "_smoke",
+  "name": "quantpick-smoke",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "private": true,
+  "description": "QuantPick 回归测试套件(jsdom 驱动真实页面 + 本地数据服务)",
+  "license": "MIT",
+  "author": "QuantPick",
   "type": "commonjs",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "scripts": {
+    "test": "npm run test:offline",
+    "test:offline": "node run.js && node predict-engine.js && node review-history.js && node snapshot-sync.js && node website-smoke.js",
+    "test:isolated": "powershell -NoProfile -ExecutionPolicy Bypass -File run-isolated.ps1"
+  },
   "dependencies": {
     "jsdom": "^30.0.1"
   }
