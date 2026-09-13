@@ -129,6 +129,22 @@ sudo certbot --nginx -d 你的域名 -d www.你的域名
 | 开机自启 | `pm2 startup`（按提示执行输出命令）+ `pm2 save` |
 | 换端口（如 80） | `PORT=80 pm2 restart quantpick --update-env` |
 
+### 更新到新版本（不用登录服务器）
+
+在本地 `quantpick` 目录执行一条命令：它会自动上传更新包 → 从 pm2 读出真实应用目录 →
+备份 `server.js` → 解压覆盖 → 重启 → 跑一次部署自检。
+
+```powershell
+# 先预演（只打印将要执行的命令，不连服务器）
+powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-update.ps1 -Server 你的服务器IP -DryRun
+
+# 真正执行（会提示输入两次密码）
+powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-update.ps1 -Server 你的服务器IP
+```
+
+> 若提示 `pm2 process 'quantpick' not found`，用 `pm2 list` 看实际进程名，再加 `-Pm2Name <名字>`。
+> 想免密码：`ssh-copy-id root@你的服务器IP` 执行一次即可。
+
 ---
 
 ## 常见问题排查

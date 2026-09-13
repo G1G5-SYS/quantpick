@@ -81,6 +81,24 @@ pm2 reload quantpick        # 或 systemctl restart quantpick
 
 **安全相关的修复（如静态托管守卫）必须在发布后重新部署才算生效** —— 线上跑的还是旧进程。
 
+### 用一键脚本更新（推荐）
+
+不需要登录服务器手敲命令，本地一条命令即可（内含：上传 → 从 pm2 探测真实应用目录 →
+备份 `server.js` → 解压覆盖 → 重启 → 远程自检）：
+
+```powershell
+cd quantpick
+# 先预演，确认它要执行什么（不会连服务器）
+powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-update.ps1 -Server 1.2.3.4 -DryRun
+
+# 实际执行（会提示输入两次密码：scp 一次、ssh 一次）
+powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-update.ps1 -Server 1.2.3.4
+```
+
+- 脚本**不假设**应用目录是 `/opt/quantpick`，而是用 `pm2 describe` 读出真实的 `exec cwd`
+- 部署前会备份为 `/root/server.js.bak-<时间戳>`，失败时脚本会直接打印回滚命令
+- 想免密码：先执行一次 `ssh-copy-id root@1.2.3.4`，之后整个流程可无人值守
+
 发布后校验清单：
 
 - [ ] 首页可打开，四张界面预览图在 GitHub README 里正常显示（不是裂图）
