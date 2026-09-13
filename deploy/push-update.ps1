@@ -1,6 +1,8 @@
 param(
   [Parameter(Mandatory=$true)][string]$Server,
   [string]$User = 'root',
+  [int]$Port = 22,
+  [string]$KeyFile = '',
   [string]$Zip = '',
   [string]$RemoteDir = '',
   [string]$Pm2Name = 'quantpick',
@@ -25,6 +27,8 @@ param(
 #   powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-update.ps1 -Server 1.2.3.4
 #   ... -RemoteDir /www/wwwroot/example.com      # override app-dir detection
 #   ... -Zip C:\path\to\quantpick-1.0.1-update.zip
+#   ... -KeyFile C:\path\to\id_ed25519           # key auth: no password prompt
+#   ... -Port 2222                               # non-standard SSH port
 #   ... -DryRun                                  # print the remote commands and exit
 #   ... -NoCheck                                 # skip the remote self-check
 #
@@ -79,14 +83,28 @@ $zipName = $zipItem.Name
 Write-Host ('[1/5] zip    : {0} ({1:N0} bytes, {2})' -f $zipName, $zipItem.Length, $zipItem.LastWriteTime)
 
 $stamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
-$target = '{0}@{1}:/root/' -f $User, $Server
+$hostSpec = '{0}@{1}' -f $User, $Server
+$scpDest = '{0}:/root/' -f $hostSpec
+
+# Shared ssh/scp options. -KeyFile enables non-interactive runs (no password prompt);
+# scp takes -P for the port while ssh takes -p, hence two arrays.
+$sshArgs = @()
+$scpArgs = @()
+if ($Port -ne 22) { $sshArgs += @('-p', "$Port"); $scpArgs += @('-P', "$Port") }
+if ($KeyFile) {
+  if (-not (Test-Path $KeyFile)) { Fail "key file not found: $KeyFile" }
+  $sshArgs += @('-i', $KeyFile, '-o', 'IdentitiesOnly=yes')
+  $scpArgs += @('-i', $KeyFile, '-o', 'IdentitiesOnly=yes')
+}
+$sshArgs += @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=20')
+$scpArgs += @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=20')
 
 # ---------- dry run ----------
 if ($DryRun) {
   $appDir = if ($RemoteDir) { $RemoteDir } else { '/opt/quantpick' }
   if (-not $RemoteDir) { Write-Host '(dry-run) -RemoteDir not given; the real value is auto-detected from pm2 (placeholder shown below)' -ForegroundColor Yellow }
-  Write-Host ('[dry-run] target    : {0}   app dir: {1}   pm2: {2}' -f $target, $appDir, $Pm2Name)
-  Write-Host ('[dry-run] would run : scp {0} -> {1}' -f $zipName, $target)
+  Write-Host ('[dry-run] target    : {0} (port {1}{2})   app dir: {3}   pm2: {4}' -f $hostSpec, $Port, $(if ($KeyFile) { ', key auth' } else { ', password auth' }), $appDir, $Pm2Name)
+  Write-Host ('[dry-run] would run : scp {0} -> {1}' -f $zipName, $scpDest)
   Write-Host '[dry-run] remote script:'
   Write-Host '----------------------------------------'
   Write-Host (New-RemoteScript $appDir $stamp $zipName $Pm2Name).TrimEnd()
@@ -96,13 +114,15 @@ if ($DryRun) {
 }
 
 # ---------- 2. upload ----------
-Write-Host ('[2/5] upload : scp -> {0}   (password prompt #1)' -f $target)
-& scp $Zip $target
+if ($KeyFile) { Write-Host ('[2/5] upload : scp -> {0}   (key auth)' -f $scpDest) }
+else { Write-Host ('[2/5] upload : scp -> {0}   (password prompt #1)' -f $scpDest) }
+& scp @scpArgs $Zip $scpDest
 if ($LASTEXITCODE -ne 0) { Fail "scp failed (exit $LASTEXITCODE)" }
 
 # ---------- 3. discover the app dir ----------
-Write-Host ('[3/5] detect : pm2 describe {0}   (password prompt #2)' -f $Pm2Name)
-$detect = & ssh ('{0}@{1}' -f $User, $Server) ("pm2 describe {0} 2>/dev/null | grep -E 'script path|exec cwd|status' || echo PM2_NOT_FOUND" -f $Pm2Name)
+if ($KeyFile) { Write-Host ('[3/5] detect : pm2 describe {0}   (key auth)' -f $Pm2Name) }
+else { Write-Host ('[3/5] detect : pm2 describe {0}   (password prompt #2)' -f $Pm2Name) }
+$detect = & ssh @sshArgs $hostSpec ("pm2 describe {0} 2>/dev/null | grep -E 'script path|exec cwd|status' || echo PM2_NOT_FOUND" -f $Pm2Name)
 $detectText = ($detect | Out-String)
 Write-Host $detectText.Trim()
 if ($detectText -match 'PM2_NOT_FOUND') { Fail ("pm2 process '{0}' not found on the server; check `pm2 list` and pass -Pm2Name <name>" -f $Pm2Name) }
@@ -120,7 +140,7 @@ if (-not $RemoteDir) {
 # ---------- 4. remote update ----------
 Write-Host '[4/5] update : backup + unzip + pm2 restart'
 $remoteScript = New-RemoteScript $RemoteDir $stamp $zipName $Pm2Name
-$out = $remoteScript | & ssh ('{0}@{1}' -f $User, $Server) 'bash -s'
+$out = $remoteScript | & ssh @sshArgs $hostSpec 'bash -s'
 $outText = ($out | Out-String)
 Write-Host $outText.Trim()
 $rc = $LASTEXITCODE
@@ -134,7 +154,7 @@ if ($rc -ne 0 -or $outText -notmatch 'REMOTE_UPDATE_OK') {
 # ---------- 5. self-check ----------
 if (-not $NoCheck) {
   Write-Host '[5/5] check  : deploy/check.js on the server'
-  $chk = & ssh ('{0}@{1}' -f $User, $Server) ("cd '{0}' && node deploy/check.js" -f $RemoteDir)
+  $chk = & ssh @sshArgs $hostSpec ("cd '{0}' && node deploy/check.js" -f $RemoteDir)
   Write-Host ($chk | Out-String).Trim()
 } else {
   Write-Host '[5/5] check  : skipped (-NoCheck)'
