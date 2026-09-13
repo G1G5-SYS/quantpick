@@ -57,4 +57,8 @@ pause
 
 - `deploy/SelfExtract.cs` — 自解压启动器源码
 - `dist-desktop/` — 解压内容源目录(构建输入)
-- `QuantPick桌面版.exe` — 最终桌面版
+- `QuantPick桌面版.exe` — 最终桌面版(约 35 MB)
+
+> 发布到 GitHub Releases 时建议把附件重命名为 **`QuantPick.exe`**:
+> ASCII 名在部分下载工具里不会乱码,且 GitHub 上传时本来就会去掉文件名中的中文。
+> 详见 [`../docs/RELEASING.md`](../docs/RELEASING.md)。

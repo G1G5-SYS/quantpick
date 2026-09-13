@@ -96,8 +96,8 @@ Windows 用户也可以直接双击 **`start.bat`**（自动启动服务并打�
 - [`deploy/DESKTOP.md`](deploy/DESKTOP.md) —— 打包成免安装 Node 的 Windows 桌面单文件版
 
 > 桌面版单文件 `.exe` 体积较大（内置 Node 运行时），**不随源码仓库分发**，
-> 请到 [Releases](https://github.com/G1G5-SYS/quantpick/releases) 页面下载；
-> 维护者发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)。
+> 请到 [Releases](https://github.com/G1G5-SYS/quantpick/releases) 页面下载
+> （下载文件名为 **`QuantPick.exe`**）；维护者发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)。
 
 ---
 

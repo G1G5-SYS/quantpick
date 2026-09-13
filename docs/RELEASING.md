@@ -40,6 +40,12 @@ npm run test:isolated       # 全量回归(独立端口 8091 + 独立数据目�
 桌面版单文件 `.exe` **不进仓库**（`.gitignore` 已排除），只作为 Release 附件分发。
 构建步骤见 [`../deploy/DESKTOP.md`](../deploy/DESKTOP.md)，产物约 35 MB。
 
+> **附件名用 ASCII**：本地产物名是 `QuantPick桌面版.exe`，但上传到 GitHub 后中文会被去掉、
+> 变成 `QuantPick.exe`（部分下载工具对中文名也会乱码）。建议上传前先重命名，保持名实一致：
+> ```bash
+> cp "QuantPick桌面版.exe" QuantPick.exe
+> ```
+
 ## 4. 打 tag 并推送
 
 ```bash
@@ -52,13 +58,13 @@ git push origin v1.0.0
 
 网页方式：仓库 → Releases → **Draft a new release** → 选择刚推的 tag →
 标题写 `v1.0.0`，说明可从 `CHANGELOG.md` 对应小节复制 →
-把 `QuantPick桌面版.exe` 拖进附件区 → Publish。
+把 `QuantPick.exe` 拖进附件区（等进度走完）→ Publish。
 
 命令行方式（需要 `gh` CLI 且已登录）：
 
 ```bash
-gh release create v1.0.0 "QuantPick桌面版.exe" \
-  --title "v1.0.0" \
+gh release create v1.0.1 QuantPick.exe \
+  --title "v1.0.1" \
   --notes-file CHANGELOG.md
 ```
 
