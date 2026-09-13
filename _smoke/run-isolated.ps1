@@ -6,7 +6,7 @@
 #       dies mid-run and produces mass false failures.
 # Isolation: dedicated port 8091 + dedicated data dir (_smoke/_data).
 param(
-  [string]$Suites = 'run.js,predict-engine.js,predict-ui.js,real-ui.js,nav-groups.js,calendar.js,snapshot-sync.js,review-history.js,backtest-analysis.js,website-smoke.js,api-fields.js'
+  [string]$Suites = 'run.js,predict-engine.js,predict-ui.js,real-ui.js,nav-groups.js,calendar.js,snapshot-sync.js,review-history.js,backtest-analysis.js,website-smoke.js,api-fields.js,static-guard.js'
 )
 $ErrorActionPreference = 'Continue'
 $suiteList = @($Suites -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })

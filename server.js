@@ -800,10 +800,22 @@ async function handle(req, res) {
     }
     if (p.startsWith('/api/')) return send(404, { ok: false, message: '未知接口' });
 
-    let fp = path.normalize(path.join(ROOT, decodeURIComponent(p)));
-    if (!fp.startsWith(ROOT)) return send(403, { ok: false, message: '禁止访问' });
-    // 不对外提供服务器源码/桌面构建脚本(避免泄露上游 API 拼接逻辑等内部实现)
-    if (/(^|[\\/])server\.js$|(^|[\\/])_smoke([\\/]|$)|(^|[\\/])dist-desktop([\\/]|$)|(^|[\\/])\.cache([\\/]|$)|\.bat$|\.ps1$/i.test(fp)) {
+    /* 静态资源路径解析:先解码再规范化,然后确认结果确实落在 ROOT 之内。
+     * 不能只用 fp.startsWith(ROOT) 判断:字符串前缀会把"兄弟路径"误判为合法,
+     * 例如 ROOT=...\quantpick 时,...\quantpick-update.zip 也"以 ROOT 开头",
+     * 于是 /..%2fquantpick-update.zip 就能读到应用目录之外的文件。
+     * 正确做法:要求 fp === ROOT,或以 ROOT + 路径分隔符 开头。 */
+    let fp;
+    try {
+      fp = path.normalize(path.join(ROOT, decodeURIComponent(p)));
+    } catch (e) {
+      /* 畸形百分号编码(如 "/%")会抛 URIError;明确返回 400 而不是落到通用 500 */
+      return send(400, { ok: false, message: '非法请求路径' });
+    }
+    if (fp !== ROOT && !fp.startsWith(ROOT + path.sep)) return send(403, { ok: false, message: '禁止访问' });
+    /* 不对外提供:服务器源码 / 桌面构建脚本 / 部署脚本 / 版本库元数据 / 本地密钥与配置。
+     * .git 必须挡掉 —— 否则可拉取 .git/objects/* 还原完整提交历史(含曾误提交后删除的文件)。 */
+    if (/(^|[\\/])server\.js$|(^|[\\/])_smoke([\\/]|$)|(^|[\\/])deploy([\\/]|$)|(^|[\\/])dist-desktop([\\/]|$)|(^|[\\/])\.cache([\\/]|$)|(^|[\\/])\.git([\\/]|$)|(^|[\\/])\.env(\..*)?$|(^|[\\/])\.npmrc$|\.(bat|ps1|sh|zip|pem|key|pfx|p12|crt|jks|keystore)$/i.test(fp)) {
       return send(403, { ok: false, message: '禁止访问' });
     }
     if (p === '/') fp = path.join(ROOT, 'index.html');
