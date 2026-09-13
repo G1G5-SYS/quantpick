@@ -133,6 +133,14 @@ Stop-ScheduledTask -TaskName QuantPickServer, QuantPickGateway
 Start-ScheduledTask -TaskName QuantPickServer, QuantPickGateway
 ```
 
+### 5) 从公网复核（在你自己电脑上跑，不碰服务器）
+
+```powershell
+node deploy/check-live.js https://<你的域名>
+```
+13 项全 PASS 即表示：服务可用、静态文件已更新、静态守卫全部生效、接口字段完整。
+本机 DNS 解析不到时可以直连 IP：`node deploy/check-live.js https://<你的域名> <服务器IP>`
+
 ## 五、排障速查
 
 | 现象 | 先查什么 |

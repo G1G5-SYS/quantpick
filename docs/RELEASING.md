@@ -104,8 +104,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-update.ps1 -Serv
 - [ ] 首页可打开，四张界面预览图在 GitHub README 里正常显示（不是裂图）
 - [ ] 大盘晴雨表 KPI 无 `undefined` / "占比 undefined%"
 - [ ] 指数卡片有市场标签，无 `undefined`
-- [ ] `curl -i https://<域名>/server.js` 返回 403
-- [ ] `curl -i https://<域名>/.git/config` 返回 403
-- [ ] `curl -i "https://<域名>/..%2f..%2fetc%2fpasswd"` 返回 403
+- [ ] 服务器上跑 `node deploy/check.js` → 9 项全 PASS
+- [ ] **任意机器上跑公网复核**：`node deploy/check-live.js https://<域名>` → 13 项全 PASS
+      （覆盖 `/server.js`、`/.git/config`、路径穿越、`/%`、接口字段等，已带时间戳穿透 CDN 缓存；
+      本机 DNS 不通时可加第二个参数指定 IP：`node deploy/check-live.js https://<域名> <IP>`）
 - [ ] CI 徽章为绿色；Releases 页面能看到桌面版附件
 - [ ] 官网「进入应用」按钮指向正确地址
