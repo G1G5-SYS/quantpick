@@ -13,6 +13,28 @@
 
 ---
 
+## 界面预览
+
+### 大盘晴雨表 · 市场总体概况
+
+![大盘晴雨表](docs/screenshots/01-dashboard.png)
+
+### 榜单中心 · 完整排行 + AI 评估榜
+
+![榜单中心](docs/screenshots/02-ranks.png)
+
+### AI 智能分析 · 预测选股（概率 / 预期收益 / 综合评分）
+
+![AI 智能分析](docs/screenshots/03-ai-analysis.png)
+
+### 策略回测 · 净值曲线 + 蒙特卡洛回撤
+
+![策略回测](docs/screenshots/04-backtest.png)
+
+> 界面为深色「深海蓝金」主题；**红涨绿跌**符合 A 股习惯（可在设置中切换）。
+
+---
+
 ## 这是什么
 
 一个**跑起来只要 `node server.js`** 的 A 股研究工具。没有 `package.json`、没有 `node_modules`、
