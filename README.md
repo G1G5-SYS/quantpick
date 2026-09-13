@@ -5,6 +5,7 @@
 > **在线体验**：<https://xinghuo1.org>（登录页点「一键体验演示账号」即可，无需注册）
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/G1G5-SYS/quantpick/actions/workflows/ci.yml/badge.svg)](https://github.com/G1G5-SYS/quantpick/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A516-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](#技术特点)
 [![Data](https://img.shields.io/badge/data-%E4%B8%9C%E6%96%B9%E8%B4%A2%E5%AF%8C%20%2B%20%E8%85%BE%E8%AE%AF-blue.svg)](#数据来源与合规)
@@ -73,7 +74,7 @@
 要求 **Node.js ≥ 16**（[下载](https://nodejs.org)）。
 
 ```bash
-git clone https://github.com/<你的用户名>/quantpick.git
+git clone https://github.com/G1G5-SYS/quantpick.git
 cd quantpick
 node server.js
 # 浏览器打开 http://127.0.0.1:8090
@@ -93,6 +94,10 @@ Windows 用户也可以直接双击 **`start.bat`**（自动启动服务并打�
 - [`deploy/DEPLOY.md`](deploy/DEPLOY.md) —— 云服务器、Nginx 反代、HTTPS、云函数等方案
 - [`deploy/STEP-BY-STEP.md`](deploy/STEP-BY-STEP.md) —— 逐步操作手册
 - [`deploy/DESKTOP.md`](deploy/DESKTOP.md) —— 打包成免安装 Node 的 Windows 桌面单文件版
+
+> 桌面版单文件 `.exe` 体积较大（内置 Node 运行时），**不随源码仓库分发**，
+> 请到 [Releases](https://github.com/G1G5-SYS/quantpick/releases) 页面下载；
+> 维护者发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)。
 
 ---
 
@@ -194,8 +199,14 @@ quantpick/
 │   ├── app.js             # 应用外壳:路由 / 页面 / 图表 / 交互
 │   └── vendor/echarts.min.js   # Apache ECharts(Apache-2.0,本地内置,离线可用)
 ├── website/index.html     # 官网(纯静态,可与应用同域部署)
+├── test.html              # 开发用页面(预置登录态,便于直接调试某个页面)
 ├── deploy/                # 部署文档与脚本(云服务器 / HTTPS / 桌面版构建)
-└── _smoke/                # 回归测试(jsdom)
+├── docs/                  # 截图与发布流程文档
+├── _smoke/                # 回归测试(jsdom)
+├── .github/               # CI 工作流 + Issue / PR 模板
+├── CONTRIBUTING.md        # 参与贡献指南
+├── SECURITY.md            # 安全问题反馈方式
+└── CHANGELOG.md           # 版本变更记录
 ```
 
 ---
@@ -204,23 +215,47 @@ quantpick/
 
 测试位于 `_smoke/`，用 jsdom 驱动真实页面 + 真实数据服务。
 
+> 应用本体只需 **Node 16+**；但**跑测试需要 Node 22.22.2+ / 24.15+**（jsdom 30 的运行时要求）。
+
 ```bash
 cd _smoke
-npm i jsdom                  # 测试依赖(仅测试需要)
+npm ci                       # 安装测试依赖(只有 jsdom,不影响应用本体)
 
-node run.js                  # 无服务模式(降级行为)
-node predict-engine.js       # 预测引擎(权重/边界/锁定规则)
-node predict-ui.js           # 预测页 + 诊断页渲染
-node real-ui.js              # 真实数据端到端渲染
-node calendar.js             # 交易日历判定(含节假日)
-node snapshot-sync.js        # 预测台账同步
-node review-history.js       # 累计胜率汇总
-node backtest-analysis.js    # 蒙特卡洛回撤 + 窗口稳健性
-node nav-groups.js           # 导航分组
-node website-smoke.js        # 官网内容与配色同步
+npm test                     # 离线套件(5 个,不依赖数据服务,任何环境都能跑)
+npm run test:isolated        # 全量回归:独立端口 8091 + 独立数据目录,自动启停被测服务
+```
 
-# 隔离运行器:独立端口 8091 + 独立数据目录,自动启停被测服务
-powershell -ExecutionPolicy Bypass -File run-isolated.ps1
+**不依赖数据服务的套件**（CI 默认跑这些）：
+
+| 套件 | 覆盖 |
+|---|---|
+| `run.js` | 服务不可用时的降级：明确报错，不渲染任何模拟数据 |
+| `predict-engine.js` | 预测引擎权重、边界、市场环境与锁定规则 |
+| `review-history.js` | 累计胜率汇总与样本量敏感性 |
+| `snapshot-sync.js` | 预测台账同步、传输失败标记 |
+| `website-smoke.js` | 官网内容 / 配色与产品保持同步 |
+
+**需要真实数据服务的套件**（`npm run test:isolated` 会先启动服务再依次执行）：
+
+| 套件 | 覆盖 |
+|---|---|
+| `real-engine.js` | 选股 / 回测 / AI 分析在真实数据上运行，并抽查与东财口径一致性 |
+| `real-ui.js` | 真实数据端到端渲染（仪表盘 / 行情 / 详情 / 选股 / 对话 / 设置） |
+| `predict-ui.js` | 预测页与诊断页渲染、预测值盘中锁定 |
+| `predict-legacy-repro.js` | 旧格式历史快照不会导致预测页崩溃 |
+| `api-fields.js` | 接口字段契约：界面会渲染的字段不得为 `undefined` |
+| `static-guard.js` | 静态资源安全守卫：越界读取、`.git` 元数据暴露、畸形编码 |
+| `calendar.js` | 交易日历判定（含春节 / 国庆等节假日） |
+| `backtest-analysis.js` | 蒙特卡洛回撤 + 窗口稳健性 |
+| `nav-groups.js` | 导航分组渲染与路由高亮 |
+
+另有 `predict-perf.js`（全市场预测耗时测量，非断言套件）。
+
+`run-isolated.ps1` 是隔离运行器：在独立端口与独立数据目录内起停被测服务，避免污染你的真实预测台账；
+可用 `-Suites` 只跑指定套件：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File run-isolated.ps1 -Suites "run.js,api-fields.js"
 ```
 
 ---
@@ -232,6 +267,17 @@ powershell -ExecutionPolicy Bypass -File run-isolated.ps1
 - 预测模型是**透明规则概率引擎**，不是机器学习模型，请勿高估其能力
 - 股东户数 / 十大股东、北向资金、分钟级资金流暂未接入
 - 依赖第三方公开接口，接口变更或限流会导致相应功能暂时不可用
+
+---
+
+## 参与贡献
+
+欢迎 Issue 与 PR。动手前请先读 [`CONTRIBUTING.md`](CONTRIBUTING.md) —— 其中最关键的一条是
+**应用本体必须保持零依赖**（不允许引入任何运行时 npm 包）。安全相关问题请按
+[`SECURITY.md`](SECURITY.md) 的方式反馈，不要在 Issue 里贴出可利用细节。
+
+- 提交前请在 `_smoke/` 跑一遍回归：`npm test`；涉及真实数据的用 `npm run test:isolated`
+- 版本变更记录见 [`CHANGELOG.md`](CHANGELOG.md)；发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)
 
 ---
 

@@ -1,0 +1,20 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows 脚本保持 CRLF(与 .gitattributes 一致)
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+# 二进制不做换行/末尾空行处理
+[*.{png,jpg,jpeg,gif,ico,zip,exe,woff,woff2}]
+insert_final_newline = false
