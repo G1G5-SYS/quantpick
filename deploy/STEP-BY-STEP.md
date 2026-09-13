@@ -63,7 +63,10 @@ PASS | 应用本体 / (含 #app)
 PASS | 官网 /website/
 PASS | 真实行情 /api/quote(600519)
 PASS | 全市场 /api/market-all
-总计:6 项,失败:0
+PASS | 静态守卫 /server.js 应为 403
+PASS | 静态守卫 /.git/config 应为 403
+PASS | 静态守卫 路径穿越 应为 403
+总计:9 项,失败:0
 ✔ 部署正常
 ```
 

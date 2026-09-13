@@ -61,6 +61,20 @@ function get(path, timeout) {
     check('全市场 /api/market-all', m.status === 200 && total > 3000, 'HTTP ' + m.status + ', total=' + total);
   } catch (e) { check('全市场 /api/market-all', false, e.message); }
 
+  /* 7-9. 静态资源安全守卫(公网部署必须全为 403)
+   * 背景:曾出现越界读取(/..%2f 可读到应用目录之外的文件)与 .git 元数据暴露。
+   * 注意路径穿越必须写成 ..%2f:URL 解析器会把 %2e%2e 还原成 .. 并规范化掉,那样测不到真实行为。 */
+  for (const [name, p] of [
+    ['静态守卫 /server.js', '/server.js'],
+    ['静态守卫 /.git/config', '/.git/config'],
+    ['静态守卫 路径穿越', '/..%2f..%2fetc%2fpasswd']
+  ]) {
+    try {
+      const r = await get(p);
+      check(name + ' 应为 403', r.status === 403, 'HTTP ' + r.status);
+    } catch (e) { check(name + ' 应为 403', false, e.message); }
+  }
+
   console.log('\n================ QuantPick 部署自检(' + base + ') ================');
   results.forEach(r => console.log(r));
   const fails = results.filter(r => r.startsWith('FAIL'));
