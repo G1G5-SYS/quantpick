@@ -81,6 +81,44 @@ Stop-ScheduledTask -TaskName QuantPickServer, QuantPickGateway
 Start-ScheduledTask -TaskName QuantPickServer, QuantPickGateway
 ```
 
+### 坑 3：IIS 抢占 80 端口 → 网关整体崩溃，HTTPS 一起挂
+
+**现象**：重启后 `https://域名` 打不开；`netstat -ano | findstr ":80 :443"` 显示 `:80` 属于 **PID 4**
+（System 进程 = HTTP.SYS = IIS），而 `:443` **根本不存在**；网关任务状态是 `Ready` 而不是 `Running`。
+
+**原因**：`gateway.js` 依次监听 80 与 443。80 被 IIS 占用时 `listen(80)` 抛 `EADDRINUSE`，
+异常未被捕获 → **整个进程退出** → 已经监听成功的 443 随之消失。于是"只是 80 被占"演变成"HTTPS 全挂"。
+
+**处理**（这台服务器不需要 IIS 时）：
+
+```powershell
+Get-Service W3SVC | Select-Object Name, Status, StartType
+Stop-Service W3SVC -Force              # 释放 80(会提示"正在等待服务停止",稍等即可)
+Set-Service W3SVC -StartupType Disabled # 避免下次开机又抢 80
+Start-ScheduledTask -TaskName QuantPickGateway
+Start-Sleep 5
+netstat -ano | findstr ":80 :443"      # 两个端口都应是 node 的 PID,不再是 4
+```
+
+若 `W3SVC` 不是占用者，用它定位真正的 HTTP.SYS 服务：
+
+```powershell
+netsh http show servicestate | Select-String -Pattern "Process ID|Request queue" | Select-Object -First 12
+```
+
+**根治**：让 `gateway.js` 对 80 / 443 各自独立监听、独立错误处理 —— 443（主入口）必须起来，
+80 失败只记一条日志、不影响 443：
+
+```js
+function listenSafe(label, server, port) {
+  server.on('error', e => console.log('[gateway] ' + label + ' :' + port + ' 启动失败: ' + e.code + '（不影响其它端口）'));
+  try { server.listen(port, () => console.log('[gateway] ' + label + ' listening on :' + port)); }
+  catch (e) { console.log('[gateway] ' + label + ' :' + port + ' 启动失败: ' + e.message); }
+}
+listenSafe('HTTPS', httpsSrv, 443);
+listenSafe('HTTP', httpSrv, 80);
+```
+
 ## 四、更新到新版本
 
 ### 1) 把新文件放到服务器
@@ -146,6 +184,7 @@ node deploy/check-live.js https://<你的域名>
 | 现象 | 先查什么 |
 |---|---|
 | 网站打不开 | `netstat -ano \| findstr ":80 :443 :8090"` → 端口不在 = 进程没了；再看 `logs\server.log`、`logs\gateway.log` |
+| 重启后 https 打不开、`:80` 属于 **PID 4** | 见坑 3：IIS 抢占 80 导致网关崩溃；`Stop-Service W3SVC -Force` + 设为 Disabled |
 | 日志有"已启动"但端口没了 | 见坑 1：进程被任务回收，改用第二节的注册方式 |
 | `gateway.log` 提示未检测到证书 | 证书不在 `deploy-app\cert\fullchain.pem` + `privkey.pem`，HTTPS 不会启用（仅 80 可用） |
 | 页面提示"数据服务未连接" | `server.js` 没起来，或 8090 被占用：`netstat -ano \| findstr ":8090"` |
