@@ -92,7 +92,8 @@ Windows 用户也可以直接双击 **`start.bat`**（自动启动服务并打�
 ### 方式三：部署到服务器 / 打包桌面版
 
 - [`deploy/DEPLOY.md`](deploy/DEPLOY.md) —— 云服务器、Nginx 反代、HTTPS、云函数等方案
-- [`deploy/STEP-BY-STEP.md`](deploy/STEP-BY-STEP.md) —— 逐步操作手册
+- [`deploy/STEP-BY-STEP.md`](deploy/STEP-BY-STEP.md) —— 逐步操作手册（Linux）
+- [`deploy/WINDOWS.md`](deploy/WINDOWS.md) —— **Windows Server 部署与更新**（计划任务守护、避坑、回滚）
 - [`deploy/DESKTOP.md`](deploy/DESKTOP.md) —— 打包成免安装 Node 的 Windows 桌面单文件版
 
 > 桌面版单文件 `.exe` 体积较大（内置 Node 运行时），**不随源码仓库分发**，

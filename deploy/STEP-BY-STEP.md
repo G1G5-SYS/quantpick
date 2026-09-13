@@ -1,5 +1,9 @@
 # QuantPick 公网部署 · 逐步操作手册（路径 A：云服务器）
 
+> **本文档适用于 Linux 服务器（Ubuntu + pm2）。**
+> 如果你的服务器是 **Windows Server**，请改看 [`WINDOWS.md`](WINDOWS.md) —— 主要差别在"用计划任务守护进程"，
+> 且必须避开 `start /b` 被任务回收、`taskkill /F /IM node.exe` 误杀等坑。
+
 > 目标：让 `https://你的域名/` 直接打开软件（行情/AI预测等全部可用）。
 > 适用：Ubuntu 22.04/24.04 云服务器 + Windows 本地电脑。
 > 全程约 20 分钟。任何一步卡住，把终端输出截图发回即可。
