@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantPick 牛股智选 · AI 智能选股终端</title>
+<meta name="description" content="QuantPick 牛股智选 — 覆盖全 A 股 5900+ 只股票的真实数据 AI 选股终端:AI 智能分析(预测选股:上涨概率/预期收益/超额收益/风险回撤 + 个股六维诊断)、大盘晴雨表、榜单中心、条件选股、策略回测(含蒙特卡洛回撤与窗口稳健性)、预测台账与累计胜率。数据来源:东方财富+腾讯公开接口,不含任何模拟数据。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232e6be6'/%3E%3Ccircle cx='46' cy='46' r='13' fill='%23f5b301'/%3E%3Crect x='41.5' y='41.5' width='9' height='9' rx='2' fill='%232e6be6'/%3E%3Cpath d='M14 46l11-13 8 6 15-19' stroke='%23ffd34d' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg-0: #0b1220; --bg-1: #0f1829; --bg-2: #141f33; --bg-3: #1a2740;
+  --line: rgba(160,190,255,.10); --line-2: rgba(160,190,255,.22);
+  --txt-1: #e9effc; --txt-2: #a9b9d9; --txt-3: #7488ac;
+  --brand: #2e6be6; --brand-deep: #1e4fbf; --brand-2: #38bdf8; --gold: #f5b301; --gold-2: #ffd75e;
+  --up: #ff4d4f; --down: #00b578;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --kai: 'KaiTi','STKaiti','Kaiti SC',var(--font);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { font-family:var(--font); background:var(--bg-0); color:var(--txt-1); font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+::selection { background:rgba(245,179,1,.35); color:#fff; }
+::-webkit-scrollbar { width:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(140,175,240,.22); border-radius:8px; }
+a { color:var(--gold-2); text-decoration:none; }
+.num { font-variant-numeric:tabular-nums; font-family:'DIN Alternate','Bahnschrift',var(--font); }
+.up { color:var(--up); } .down { color:var(--down); }
+
+/* ===== 动态背景:粒子 + 光晕 ===== */
+#fx { position:fixed; inset:0; z-index:-2; pointer-events:none; }
+.bg-aurora { position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(1100px 620px at 12% -10%, rgba(46,107,230,.20), transparent 60%),
+    radial-gradient(900px 560px at 88% -8%, rgba(56,189,248,.12), transparent 60%),
+    radial-gradient(800px 700px at 50% 112%, rgba(245,179,1,.07), transparent 60%),
+    linear-gradient(180deg,#0e1728 0%,#0b1220 100%); }
+.bg-grid { position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image: linear-gradient(rgba(140,175,240,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140,175,240,.045) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 75%); }
+
+/* ===== 顶部导航 ===== */
+.nav { position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:18px; padding:14px 4vw;
+  background:rgba(11,18,32,.8); backdrop-filter:blur(16px); border-bottom:1px solid var(--line); }
+.logo { display:flex; align-items:center; gap:11px; font-weight:800; font-size:17px; }
+.logo-badge { width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  background:linear-gradient(135deg,#1e4fbf,var(--brand) 45%,var(--gold));
+  display:flex; align-items:center; justify-content:center; font-size:19px; color:#fff; font-family:var(--kai);
+  border:1px solid rgba(255,211,77,.55); box-shadow:0 0 20px rgba(245,179,1,.4), inset 0 1px 0 rgba(255,255,255,.3); }
+.logo .sub { font-size:11px; color:var(--gold-2); letter-spacing:1.5px; font-weight:400; }
+.nav-links { display:flex; gap:22px; margin-left:auto; }
+.nav-links a { color:var(--txt-2); font-size:14px; transition:color .2s; position:relative; }
+.nav-links a::after { content:''; position:absolute; left:0; right:100%; bottom:-4px; height:2px; border-radius:2px;
+  background:linear-gradient(90deg,var(--brand),var(--gold)); transition:right .25s; }
+.nav-links a:hover { color:var(--gold-2); } .nav-links a:hover::after { right:0; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 22px; border-radius:10px;
+  font-size:14.5px; font-weight:600; border:none; cursor:pointer; transition:all .22s; white-space:nowrap; }
+.btn.primary { background:linear-gradient(135deg,#1e4fbf,var(--brand) 55%,var(--gold)); color:#fff;
+  box-shadow:0 6px 26px rgba(46,107,230,.45); }
+.btn.primary:hover { filter:brightness(1.14); box-shadow:0 10px 36px rgba(245,179,1,.5); transform:translateY(-2px); }
+.btn.ghost { background:rgba(255,255,255,.05); border:1px solid var(--line-2); color:var(--txt-1); }
+.btn.ghost:hover { border-color:var(--gold); color:#fff; box-shadow:0 0 24px rgba(245,179,1,.15); transform:translateY(-2px); }
+
+/* ===== Hero ===== */
+.hero { padding:96px 4vw 56px; text-align:center; max-width:1100px; margin:0 auto; }
+.hero .tag { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; border-radius:30px;
+  background:rgba(245,179,1,.1); border:1px solid rgba(245,179,1,.32); color:var(--gold-2); font-size:12.5px; letter-spacing:1px;
+  animation:tagGlow 3s ease-in-out infinite; }
+@keyframes tagGlow { 0%,100% { box-shadow:0 0 0 rgba(245,179,1,0); } 50% { box-shadow:0 0 26px rgba(245,179,1,.35); } }
+.hero h1 { font-size:56px; font-weight:800; letter-spacing:1px; margin:26px auto 10px; line-height:1.18; }
+.hero h1 .grad { background:linear-gradient(90deg,var(--brand-2),var(--gold-2) 60%,#dbe7ff); -webkit-background-clip:text; background-clip:text; color:transparent;
+  background-size:200% auto; animation:gradShift 5s linear infinite; }
+@keyframes gradShift { to { background-position:200% center; } }
+.hero .wish { font-family:var(--kai); font-size:20px; color:var(--gold-2); letter-spacing:7px; margin:18px 0 6px;
+  text-shadow:0 0 30px rgba(245,179,1,.45); animation:wishFloat 3.5s ease-in-out infinite; }
+@keyframes wishFloat { 0%,100% { transform:translateY(0); opacity:.92; } 50% { transform:translateY(-5px); opacity:1; } }
+.hero .sub { color:var(--txt-2); font-size:16.5px; max-width:780px; margin:0 auto; }
+.hero .cta { display:flex; gap:14px; justify-content:center; margin-top:36px; flex-wrap:wrap; }
+.hero .hint { margin-top:28px; color:var(--txt-3); font-size:12.5px; }
+.hero-float { position:relative; }
+.coin { position:absolute; font-size:26px; opacity:.0; pointer-events:none; animation:coinUp linear infinite; }
+@keyframes coinUp { 0% { transform:translateY(0) rotate(0); opacity:0; } 12% { opacity:.5; } 100% { transform:translateY(-72vh) rotate(30deg); opacity:0; } }
+
+/* 徽章条 */
+.badges { max-width:1100px; margin:8px auto 0; padding:0 4vw; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.badge { background:linear-gradient(180deg,rgba(21,33,56,.66),rgba(15,24,42,.6)); border:1px solid var(--line); border-radius:14px;
+  padding:16px 10px; text-align:center; transition:all .25s; }
+.badge:hover { transform:translateY(-3px); border-color:rgba(255,211,77,.35); box-shadow:0 10px 30px rgba(0,0,0,.35); }
+.badge .b-v { font-size:23px; font-weight:800; color:var(--gold-2); text-shadow:0 0 18px rgba(245,179,1,.35); }
+.badge .b-l { font-size:11.5px; color:var(--txt-3); margin-top:3px; letter-spacing:1px; }
+
+/* 区块 */
+.section { max-width:1100px; margin:0 auto; padding:86px 4vw 20px; }
+.sec-head { text-align:center; margin-bottom:46px; }
+.sec-head .k { display:inline-block; font-size:12px; letter-spacing:4px; color:var(--gold-2); border:1px solid rgba(245,179,1,.32);
+  padding:4px 14px; border-radius:20px; background:rgba(245,179,1,.08); }
+.sec-head h2 { font-size:35px; font-weight:800; margin-top:16px; }
+.sec-head p { color:var(--txt-2); margin-top:10px; font-size:14.5px; max-width:720px; margin-left:auto; margin-right:auto; }
+
+/* 滚动渐显 */
+.reveal { opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.in { opacity:1; transform:translateY(0); }
+
+/* 功能卡片 */
+.feats { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+.feat { position:relative; overflow:hidden; background:linear-gradient(180deg,rgba(21,33,56,.72),rgba(15,24,42,.66));
+  border:1px solid var(--line); border-radius:18px; padding:26px; transition:all .28s; }
+.feat::before { content:''; position:absolute; top:0; left:12%; right:12%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,215,94,.6),transparent); opacity:0; transition:opacity .3s; }
+.feat::after { content:''; position:absolute; inset:0; border-radius:18px; pointer-events:none;
+  background:radial-gradient(320px 140px at 50% -10%, rgba(245,179,1,.08), transparent 70%); opacity:0; transition:opacity .3s; }
+.feat:hover { border-color:rgba(255,211,77,.38); box-shadow:0 14px 40px rgba(0,0,0,.42), 0 0 0 1px rgba(245,179,1,.08); transform:translateY(-4px); }
+.feat:hover::before, .feat:hover::after { opacity:1; }
+.feat .f-ico { width:48px; height:48px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:23px;
+  background:linear-gradient(135deg,rgba(46,107,230,.24),rgba(245,179,1,.18)); border:1px solid rgba(255,211,77,.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08); transition:transform .3s; }
+.feat:hover .f-ico { transform:scale(1.08) rotate(-4deg); }
+.feat h3 { font-size:17.5px; margin:16px 0 8px; display:flex; align-items:center; gap:9px; }
+.feat h3 .dot { width:8px; height:8px; border-radius:3px; background:linear-gradient(135deg,var(--brand),var(--gold)); box-shadow:0 0 10px rgba(245,34,45,.6); }
+.feat p { color:var(--txt-2); font-size:13.5px; line-height:1.9; }
+.feat .tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; }
+.tag-chip { font-size:11px; padding:2px 10px; border-radius:20px; background:rgba(245,179,1,.1); color:var(--gold-2); border:1px solid rgba(245,179,1,.26); }
+
+/* AI 预测展示 */
+.pred-wrap { display:grid; grid-template-columns:1.05fr .95fr; gap:30px; align-items:start; }
+.pred-points { display:flex; flex-direction:column; gap:16px; }
+.pred-point { display:flex; gap:14px; align-items:flex-start; background:rgba(17,28,49,.55); border:1px solid var(--line);
+  border-radius:15px; padding:18px; transition:all .25s; }
+.pred-point:hover { border-color:rgba(255,211,77,.3); transform:translateX(4px); }
+.pred-point .pp-n { flex-shrink:0; width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:14px; background:linear-gradient(135deg,#1e4fbf,var(--gold)); color:#fff; box-shadow:0 4px 12px rgba(46,107,230,.35); }
+.pred-point b { display:block; font-size:15px; margin-bottom:4px; }
+.pred-point span { color:var(--txt-2); font-size:13px; line-height:1.8; }
+/* 示意终端 */
+.mock { background:linear-gradient(180deg,#16233a,#0b1220); border:1px solid rgba(255,211,77,.3); border-radius:20px; overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(46,107,230,.1); position:relative; }
+.mock::before { content:''; position:absolute; top:0; left:10%; right:10%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,215,94,.7),transparent); }
+.mock-bar { display:flex; align-items:center; gap:8px; padding:13px 16px; background:rgba(245,179,1,.07); border-bottom:1px solid var(--line); }
+.mock-bar i { width:11px; height:11px; border-radius:50%; }
+.mock-bar i:nth-child(1){background:#ff5f57;} .mock-bar i:nth-child(2){background:#f5b301;} .mock-bar i:nth-child(3){background:#00b578;}
+.mock-bar span { margin-left:8px; font-size:11.5px; color:var(--txt-3); letter-spacing:1px; }
+.mock-body { padding:16px; }
+.mock-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.mock-title b { font-size:14px; } .mock-title .m-chip { font-size:10.5px; padding:2px 9px; border-radius:20px;
+  background:rgba(245,179,1,.14); color:var(--gold-2); border:1px solid rgba(245,179,1,.3); animation:chipPulse 2.4s ease-in-out infinite; }
+@keyframes chipPulse { 0%,100% { box-shadow:0 0 0 rgba(245,179,1,0); } 50% { box-shadow:0 0 12px rgba(245,179,1,.4); } }
+.mock-row { display:flex; align-items:center; gap:10px; padding:11px 8px; border-bottom:1px solid var(--line); font-size:12.5px;
+  transition:background .2s; border-radius:8px; }
+.mock-row:hover { background:rgba(46,107,230,.06); }
+.mock-row .rk { width:22px; height:22px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; flex-shrink:0; }
+.mr1 { background:linear-gradient(135deg,rgba(245,179,1,.45),rgba(56,189,248,.3)); color:var(--gold-2); box-shadow:0 0 12px rgba(245,179,1,.3); }
+.mr2 { background:rgba(190,210,250,.12); color:#c9d6f0; } .mr3 { background:rgba(181,155,255,.18); color:#b59bff; }
+.mr-n { background:rgba(160,190,255,.08); color:var(--txt-3); }
+.mock-row .nm { flex:1; min-width:0; }
+.mock-row .nm .c { color:var(--txt-3); font-size:10.5px; font-family:var(--num); }
+.prob { display:flex; align-items:center; gap:7px; width:120px; }
+.prob b { width:38px; text-align:right; font-size:12.5px; }
+.pbar { flex:1; height:5px; border-radius:5px; background:rgba(160,190,255,.14); overflow:hidden; }
+.pbar i { display:block; height:100%; width:0; border-radius:5px; background:linear-gradient(90deg,#f5b301,#2e6be6); box-shadow:0 0 8px rgba(245,34,45,.4); transition:width 1.4s cubic-bezier(.2,.8,.3,1); }
+.mock .mr-ret { width:74px; text-align:right; font-size:12.5px; font-family:var(--num); }
+.mock-foot { padding:10px 16px; border-top:1px solid var(--line); font-size:10.5px; color:var(--txt-3); display:flex; justify-content:space-between; }
+.mock-note { text-align:center; color:var(--txt-3); font-size:11px; margin-top:10px; }
+
+/* 数据区 */
+.data-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+.data-item { background:rgba(17,28,49,.55); border:1px solid var(--line); border-radius:15px; padding:20px; transition:all .25s; }
+.data-item:hover { border-color:rgba(255,211,77,.3); transform:translateY(-3px); }
+.data-item b { display:flex; align-items:center; gap:8px; font-size:15px; margin-bottom:8px; }
+.data-item p { color:var(--txt-2); font-size:13px; line-height:1.9; }
+
+/* 使用步骤 */
+.steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; }
+.step { background:rgba(17,28,49,.55); border:1px solid var(--line); border-radius:15px; padding:24px; position:relative; transition:all .25s; }
+.step:hover { transform:translateY(-4px); border-color:rgba(255,211,77,.3); }
+.step .s-n { position:absolute; top:-14px; left:20px; width:30px; height:30px; border-radius:50%;
+  background:linear-gradient(135deg,#1e4fbf,var(--gold)); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center;
+  font-size:14px; box-shadow:0 4px 14px rgba(46,107,230,.4); }
+.step b { display:block; font-size:15px; margin:8px 0 6px; }
+.step p { color:var(--txt-2); font-size:12.5px; line-height:1.8; }
+.step code { background:rgba(255,211,77,.12); color:var(--gold-2); padding:2px 8px; border-radius:6px; font-size:12px; }
+
+/* 免责 */
+.disclaim { background:linear-gradient(180deg,rgba(245,179,1,.07),rgba(245,179,1,.04)); border:1px solid rgba(245,179,1,.26);
+  border-radius:15px; padding:22px 26px; color:#bcd0f5; font-size:12.5px; line-height:2; }
+.disclaim b { color:var(--gold-2); }
+
+/* 页脚 */
+.footer { margin-top:90px; padding:36px 4vw 42px; border-top:1px solid var(--line); text-align:center; color:var(--txt-3); font-size:12.5px; }
+.footer .f-logo { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px; font-weight:700; color:var(--txt-1); }
+.footer .f-logo .logo-badge { width:30px; height:30px; font-size:15px; }
+.footer .wish { font-family:var(--kai); color:var(--gold-2); letter-spacing:3px; margin-top:10px; animation:wishFloat 4s ease-in-out infinite; }
+
+@media (max-width:900px) {
+  .hero h1 { font-size:38px; }
+  .nav-links { display:none; }
+  .pred-wrap { grid-template-columns:1fr; }
+  .section { padding-top:62px; }
+  .sec-head h2 { font-size:29px; }
+}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="bg-aurora"></div>
+<div class="bg-grid"></div>
+<div class="hero-float"></div>
+
+<!-- 顶部导航 -->
+<nav class="nav">
+  <div class="logo"><div class="logo-badge">牛</div><div>QuantPick <div class="sub">牛股智选 · AI 智能选股终端</div></div></div>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#predict">AI 预测</a>
+    <a href="#data">数据</a>
+    <a href="#usage">使用</a>
+    <a href="#risk">风险提示</a>
+  </div>
+  <a class="btn primary" href="/" data-enter-app>进入应用 →</a>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <span class="tag">🧠 本地规则概率引擎 + 全市场真实数据 · 无任何模拟数据</span>
+  <h1>QuantPick <span class="grad">牛股智选</span></h1>
+  <div class="wish">牛气冲天 · 大吉大利 · 财源广进</div>
+  <p class="sub">覆盖全 A 股 <b class="up">5900+</b> 只股票的真实数据 AI 选股终端：<b style="color:var(--gold-2)">AI 智能分析</b>、<b style="color:var(--gold-2)">AI 牛股诊断</b>、大盘晴雨表、榜单中心、条件选股、策略回测。<br>盘中预测锁定 · 收盘自动复盘 · 盘前可重新预测。</p>
+  <div class="cta">
+    <a class="btn primary" href="/" data-enter-app>🚀 立即体验</a>
+    <a class="btn ghost" href="#features">了解功能</a>
+  </div>
+  <div class="hint">数据源：东方财富 + 腾讯公开接口 · 行情每 3 秒自动刷新 · 服务不可用时页面明确报错，绝不展示假数据</div>
+  <div class="hint" id="enterTip" style="display:none;color:var(--gold-2)">⚠️ 官网为静态展示页，应用需本地运行：进入 <code>quantpick</code> 目录执行 <code>node server.js</code>（或双击 <code>start.bat</code>），再打开 <code>http://127.0.0.1:8090</code>。若已启动，请直接访问 <a href="http://127.0.0.1:8090/">http://127.0.0.1:8090/</a>。</div>
+</header>
+
+<!-- 徽章条 -->
+<div class="badges">
+  <div class="badge"><div class="b-v num" data-count="5900" data-suffix="+">0</div><div class="b-l">全 A 股样本</div></div>
+  <div class="badge"><div class="b-v">3s</div><div class="b-l">行情自动刷新</div></div>
+  <div class="badge"><div class="b-v">P5/P10/P20</div><div class="b-l">多周期上涨概率</div></div>
+  <div class="badge"><div class="b-v">7 种</div><div class="b-l">排名维度</div></div>
+  <div class="badge"><div class="b-v">🔒</div><div class="b-l">盘中锁定</div></div>
+  <div class="badge"><div class="b-v">📋</div><div class="b-l">收盘自动复盘</div></div>
+</div>
+
+<!-- 功能 -->
+<section class="section" id="features">
+  <div class="sec-head reveal">
+    <span class="k">FEATURES</span>
+    <h2>一站式 A 股研究工具箱</h2>
+    <p>从大盘到个股、从预测到复盘，全部基于真实行情数据，红涨绿跌符合 A 股习惯；预测历史存于服务端，可长期核验。</p>
+  </div>
+  <div class="feats">
+    <div class="feat reveal">
+      <div class="f-ico">📊</div>
+      <h3><span class="dot"></span>大盘晴雨表</h3>
+      <p>六大指数实时行情与迷你K线、涨跌家数、涨停/跌停、两市成交额、主力净流入、市场温度，一眼看清市场状态。</p>
+      <div class="tags"><span class="tag-chip">6 大指数</span><span class="tag-chip">市场温度</span><span class="tag-chip">板块涨跌</span></div>
+    </div>
+    <div class="feat reveal">
+      <div class="f-ico">🏆</div>
+      <h3><span class="dot"></span>榜单中心</h3>
+      <p>全市场涨幅 / 跌幅 / 成交额 / 换手率 / 量比五大完整榜单（Top 200），AI 评估榜按六维评分实时排序。</p>
+      <div class="tags"><span class="tag-chip">Top 200</span><span class="tag-chip">AI 评估榜</span></div>
+    </div>
+    <div class="feat reveal">
+      <div class="f-ico">🧠</div>
+      <h3><span class="dot"></span>AI 智能分析</h3>
+      <p>一个入口两个视角：<b>预测选股</b>给出全 A 股上涨概率 P5/P10/P20、预期收益、超额收益、预期回撤与综合评分排名（总榜前 100）；<b>牛股诊断</b>针对选定个股加载日K / 财务 / 资金流 / 新闻，输出六维评分与概率预测。</p>
+      <div class="tags"><span class="tag-chip">综合评分公式</span><span class="tag-chip">7 种排名</span><span class="tag-chip">六维评分</span><span class="tag-chip">分页切换</span></div>
+    </div>
+    <div class="feat reveal">
+      <div class="f-ico">📒</div>
+      <h3><span class="dot"></span>预测台账 · 累计胜率</h3>
+      <p>每个交易日自动生成预测快照并锁定，<b>存于服务端</b>——换设备、清缓存都不会丢。支持按 Top10 / Top20 / Top50 回溯复盘，输出累计命中率、滚动 5/10 期胜率与预测偏差趋势，让"准不准"有据可查。</p>
+      <div class="tags"><span class="tag-chip">服务端台账</span><span class="tag-chip">累计命中率</span><span class="tag-chip">滚动胜率</span><span class="tag-chip">样本可调</span></div>
+    </div>
+    <div class="feat reveal">
+      <div class="f-ico">🎯</div>
+      <h3><span class="dot"></span>条件选股</h3>
+      <p>可视化组合条件，支持 AND / OR / NOT 分组与 40+ 字段，策略保存 / 复制 / 导出 CSV，一键执行选股。</p>
+      <div class="tags"><span class="tag-chip">40+ 字段</span><span class="tag-chip">策略保存</span><span class="tag-chip">CSV 导出</span></div>
+    </div>
+    <div class="feat reveal">
+      <div class="f-ico">🕹️</div>
+      <h3><span class="dot"></span>策略回测</h3>
+      <p>真实 K 线、次日收盘成交防未来函数，输出收益 / 回撤 / 胜率 / 交易明细与净值曲线。更进一步做<b>蒙特卡洛回撤</b>（重采样 400 条路径看回撤分布）与<b>窗口稳健性分析</b>（同策略跑 4 个区间），避免被单一区间的漂亮数字误导。</p>
+      <div class="tags"><span class="tag-chip">防未来函数</span><span class="tag-chip">蒙特卡洛回撤</span><span class="tag-chip">窗口稳健性</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- AI 预测 -->
+<section class="section" id="predict">
+  <div class="sec-head reveal">
+    <span class="k">AI PREDICTION</span>
+    <h2>AI 智能分析 · 怎么预测、怎么验证</h2>
+    <p>不是"感觉会涨"，而是明确的概率事件 + 可追溯的服务端台账 + 按真实交易日历的锁定与自动复盘，并用长期胜率回答"到底准不准"。</p>
+  </div>
+  <div class="pred-wrap">
+    <div class="pred-points">
+      <div class="pred-point reveal"><div class="pp-n">1</div><div><b>多目标预测</b><span>上涨概率（未来 5/10/20 日收益超过 2%/5%/8%）、预期收益、超额收益、预期最大回撤、置信度——避免只学"涨或不涨"。</span></div></div>
+      <div class="pred-point reveal"><div class="pp-n">2</div><div><b>综合评分排名</b><span>综合评分 = 35%×上涨概率 + 30%×预期收益 + 15%×超额收益 + 10%×行业强度 − 10%×风险；提供 7 种排名维度（综合 / 概率 / 收益 / 超额 / 风险收益比 / 高置信 / 低波动）。</span></div></div>
+      <div class="pred-point reveal"><div class="pp-n">3</div><div><b>按真实交易日历锁定</b><span>开盘（9:30）后至收盘（15:00）前预测锁定、不可变更；收盘后至次日开盘前可重新预测。交易日按<b>真实交易日历</b>判定（由指数日K推导，自动识别春节/国庆等休市与调休），不会把假期当成交易日。</span></div></div>
+      <div class="pred-point reveal"><div class="pp-n">4</div><div><b>收盘自动复盘</b><span>收盘后系统自动对照真实日K复盘当日预测：逐只判定命中/未中，统计命中率、预测收益与实际收益偏差、实际最大回撤，无需人工操作，并立即生成下一交易日预测。</span></div></div>
+      <div class="pred-point reveal"><div class="pp-n">5</div><div><b>长期可核验的胜率</b><span>快照存于服务端台账（可跨设备、不因清缓存丢失），把多个交易日的预测汇总起来看<b>累计命中率与滚动胜率趋势</b>——单次预测只是样本，长期统计才能回答"这套模型到底准不准"。</span></div></div>
+    </div>
+    <div class="reveal">
+      <div class="mock">
+        <div class="mock-bar"><i></i><i></i><i></i><span>QuantPick · AI 智能分析 · 界面示意</span></div>
+        <div class="mock-body">
+          <div class="mock-title"><b>综合评分榜（总榜前 100）</b><span class="m-chip">🔒 盘中锁定</span></div>
+          <div class="mock-row"><span class="rk mr1">1</span><div class="nm">秋乐种业<div class="c">1920087 · 种植业</div></div>
+            <div class="prob"><b class="up">96%</b><div class="pbar"><i data-w="96"></i></div></div><span class="mr-ret up">+6.8%</span></div>
+          <div class="mock-row"><span class="rk mr2">2</span><div class="nm">贵州茅台<div class="c">600519 · 白酒</div></div>
+            <div class="prob"><b class="up">84%</b><div class="pbar"><i data-w="84"></i></div></div><span class="mr-ret up">+4.2%</span></div>
+          <div class="mock-row"><span class="rk mr3">3</span><div class="nm">宁德时代<div class="c">300750 · 电池</div></div>
+            <div class="prob"><b style="color:var(--gold)">72%</b><div class="pbar"><i data-w="72"></i></div></div><span class="mr-ret up">+2.9%</span></div>
+          <div class="mock-row"><span class="rk mr-n">4</span><div class="nm">中国平安<div class="c">601318 · 保险</div></div>
+            <div class="prob"><b style="color:var(--gold)">61%</b><div class="pbar"><i data-w="61"></i></div></div><span class="mr-ret up">+1.6%</span></div>
+          <div class="mock-row"><span class="rk mr-n">5</span><div class="nm">药明康德<div class="c">603259 · 医疗服务</div></div>
+            <div class="prob"><b class="down">47%</b><div class="pbar"><i data-w="47"></i></div></div><span class="mr-ret down">−0.4%</span></div>
+        </div>
+        <div class="mock-foot"><span>模型 QP-PRED-1.0 · 规则概率引擎</span><span>收盘后自动复盘 → 累计胜率趋势</span></div>
+      </div>
+      <div class="mock-note">↑ 界面示意（非真实预测结果）</div>
+    </div>
+  </div>
+</section>
+
+<!-- 数据 -->
+<section class="section" id="data">
+  <div class="sec-head reveal">
+    <span class="k">REAL DATA</span>
+    <h2>只用真实数据，绝不造假</h2>
+    <p>本系统没有任何模拟数据：数据服务不可用时页面会明确报错，而不是展示假行情。</p>
+  </div>
+  <div class="data-grid">
+    <div class="data-item reveal"><b>🌐 全市场真实行情</b><p>东方财富 clist 接口覆盖沪深主板 / 创业板 / 科创板 / 北交所约 5900 只股票，与同花顺股票列表一致，每 3 秒自动刷新。</p></div>
+    <div class="data-item reveal"><b>📈 K 线 / 分钟线</b><p>日 / 周 / 月 K 线（前复权）与 5/15/30/60 分钟真实分钟线，本地缓存加速，二次打开秒回。</p></div>
+    <div class="data-item reveal"><b>💰 财务 / 资金 / 分红</b><p>F10 主要财务指标、近 20 日资金流、分红送配与股息率推算，均来自东方财富公开接口并标注数据截止时间。</p></div>
+    <div class="data-item reveal"><b>📰 新闻资讯</b><p>东方财富资讯搜索，标题为事实载体，情绪标签为规则模型推断并明确标注，绝不把事后信息当作预测时点已知信息。</p></div>
+    <div class="data-item reveal"><b>🔒 预测可追溯</b><p>每次预测保存快照：预测日期、模型版本、数据截止时间、全部特征与市场环境，收盘后可按快照逐条复盘。</p></div>
+    <div class="data-item reveal"><b>🛡️ 多源兜底</b><p>东财接口异常自动熔断切换备用源（push2delay / 腾讯），服务不中断；单只数据失败只影响该股票，页面明确标注。</p></div>
+  </div>
+</section>
+
+<!-- 使用 -->
+<section class="section" id="usage">
+  <div class="sec-head reveal">
+    <span class="k">GET STARTED</span>
+    <h2>打开就能用</h2>
+    <p>在线版直接访问，无需安装、无需注册账号、无需付费数据接口；也可在本地运行。</p>
+  </div>
+  <div class="steps">
+    <div class="step reveal"><div class="s-n">1</div><b>进入应用</b><p>点击页面上的「进入应用」按钮，或直接访问本站根路径 <code>/</code>（如 <code>https://xinghuo1.org</code>）。</p></div>
+    <div class="step reveal"><div class="s-n">2</div><b>一键体验</b><p>登录页点击「一键体验演示账号」即可进入；账号与自选股只保存在你自己的浏览器里。</p></div>
+    <div class="step reveal"><div class="s-n">3</div><b>看盘与选股</b><p>「大盘晴雨表」看市场总量，「榜单中心」看完整排行，「条件选股」按自己的条件筛股。</p></div>
+    <div class="step reveal"><div class="s-n">4</div><b>预测与复盘</b><p>「AI 智能分析」查看预测选股与个股诊断；每个交易日的预测都会锁定并存档，收盘后自动复盘，逐步积累累计胜率。</p></div>
+  </div>
+  <div class="sec-head reveal" style="margin-top:34px">
+    <p style="font-size:13.5px;color:var(--txt-3)">想在本地运行（数据不经第三方服务器）：安装 Node.js 16+，在 <code>quantpick</code> 目录双击 <code>start.bat</code>，然后访问 <code>http://127.0.0.1:8090</code>。</p>
+  </div>
+</section>
+
+<!-- 风险 -->
+<section class="section" id="risk">
+  <div class="sec-head reveal"><span class="k">RISK DISCLAIMER</span><h2>风险提示</h2></div>
+  <div class="disclaim reveal">
+    <b>请务必阅读：</b><br>
+    · QuantPick 为透明规则概率模型（非机器学习），预测输出仅基于预测时点已公开的行情 / 行业 / 市场环境数据计算，仅供技术演示与研究参考；<br>
+    · 本系统 <b>不承诺任何收益</b>，不构成投资建议，不保证预测准确；历史预测命中情况不代表未来表现；<br>
+    · 行情与资讯来自东方财富 / 腾讯公开接口，数据可能存在延迟或口径差异；<br>
+    · 系统不会自动执行任何真实交易；<br>
+    · <b>股市有风险，投资需谨慎。据此操作，风险自担。</b>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="f-logo"><div class="logo-badge">牛</div>QuantPick 牛股智选</div>
+  <div>大盘晴雨表 · 榜单中心 · 行情中心 · AI 智能分析（预测选股 / 牛股诊断 / AI 对话） · 条件选股 · 策略回测 · 自选股 · 消息提醒</div>
+  <div style="margin-top:8px">预测台账 · 累计胜率 · 真实交易日历 · 蒙特卡洛回撤 · 窗口稳健性分析</div>
+  <div style="margin-top:8px">数据源：东方财富 + 腾讯公开接口（全市场真实数据，无模拟数据）</div>
+  <div class="wish">牛气冲天 · 大吉大利 · 财源广进</div>
+</footer>
+
+<script>
+/* ===== 进入应用:自适应稳定链接 =====
+ * 通过 server(http/https)打开官网时,自动计算应用根路径并跳转;
+ * 直接双击文件(file://)或无法确定应用位置时,点击给出启动引导。 */
+(function () {
+  var btns = document.querySelectorAll('[data-enter-app]');
+  if (!btns.length) return;
+  var isFile = location.protocol === 'file:';
+  var appUrl = null;
+  if (!isFile) {
+    var p = location.pathname || '';
+    var root = p.replace(/\/website\/index\.html$/, '/').replace(/\/website\/?$/, '/');
+    if (p === '/' || p === '') root = '/';
+    appUrl = location.origin + root;
+  }
+  btns.forEach(function (b) {
+    if (appUrl) {
+      b.href = appUrl;
+      b.target = '_self';
+    } else {
+      b.href = '#';
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        var tip = document.getElementById('enterTip');
+        if (tip) tip.style.display = 'block';
+        var u = document.getElementById('usage');
+        if (u && u.scrollIntoView) u.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+  });
+})();
+/* ===== 背景粒子(金色光点 + 连线) ===== */
+(function () {
+  var cv = document.getElementById('fx');
+  if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return;
+  var W, H, ps = [];
+  function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+  resize(); addEventListener('resize', resize);
+  for (var i = 0; i < 60; i++) ps.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: Math.random() * 1.8 + 0.4, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, a: Math.random() * .45 + .1, tw: Math.random() * 6 });
+  (function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < ps.length; i++) {
+      var p = ps[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+      var al = p.a * (0.6 + 0.4 * Math.sin(performance.now() / 900 + p.tw));
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283);
+      ctx.fillStyle = 'rgba(255,196,110,' + al + ')'; ctx.fill();
+    }
+    for (var i2 = 0; i2 < ps.length; i2++) for (var j = i2 + 1; j < ps.length; j++) {
+      var dx = ps[i2].x - ps[j].x, dy = ps[i2].y - ps[j].y, d2 = dx * dx + dy * dy;
+      if (d2 < 150 * 150) {
+        ctx.beginPath(); ctx.moveTo(ps[i2].x, ps[i2].y); ctx.lineTo(ps[j].x, ps[j].y);
+        ctx.strokeStyle = 'rgba(255,178,80,' + (0.05 * (1 - d2 / (150 * 150))) + ')'; ctx.lineWidth = 0.6; ctx.stroke();
+      }
+    }
+    requestAnimationFrame(draw);
+  })();
+})();
+/* ===== 金币上升 ===== */
+(function () {
+  var host = document.querySelector('.hero-float'), coins = ['🪙', '💰', '🧧', '⭐', '🪙', '💰'];
+  function spawn() {
+    if (!document.body.contains(host)) return;
+    var s = document.createElement('span');
+    s.className = 'coin';
+    s.textContent = coins[Math.floor(Math.random() * coins.length)];
+    s.style.left = (6 + Math.random() * 88) + 'vw';
+    s.style.animationDuration = (7 + Math.random() * 6) + 's';
+    s.style.animationDelay = (-Math.random() * 8) + 's';
+    host.appendChild(s);
+    setTimeout(function () { s.remove(); }, 14000);
+  }
+  setInterval(spawn, 2600); spawn();
+})();
+/* ===== 滚动渐显 ===== */
+(function () {
+  var els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold: 0.12 });
+  els.forEach(function (e) { io.observe(e); });
+})();
+/* ===== 数字滚动动画 ===== */
+(function () {
+  var el = document.querySelector('[data-count]');
+  if (!el) return;
+  var target = +el.dataset.count, suf = el.dataset.suffix || '', t0 = null;
+  function step(t) {
+    if (!t0) t0 = t;
+    var p = Math.min(1, (t - t0) / 1400);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + suf;
+    if (p < 1) requestAnimationFrame(step);
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { requestAnimationFrame(step); io.disconnect(); } }); }, { threshold: 0.4 });
+    io.observe(el);
+  } else requestAnimationFrame(step);
+})();
+/* ===== 概率条动画 ===== */
+(function () {
+  var mock = document.querySelector('.mock');
+  if (!mock) return;
+  function fill() { mock.querySelectorAll('.pbar i').forEach(function (b) { b.style.width = b.dataset.w + '%'; }); }
+  if (!('IntersectionObserver' in window)) { fill(); return; }
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { fill(); io.unobserve(e.target); } });
+  }, { threshold: 0.3 });
+  io.observe(mock);
+})();
+</script>
+</body>
+</html>

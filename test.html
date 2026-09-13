@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>QP TEST</title>
+<script>
+// 预置会话与用户,让应用自动登录
+try {
+  localStorage.setItem('qp_users', JSON.stringify({ demo: { pass: 'x', nick: '演示用户' } }));
+  localStorage.setItem('qp_session', JSON.stringify({ name: 'demo', nick: '演示用户' }));
+} catch (e) {}
+</script>
+</head>
+<body style="background:#000">
+<div id="testlog" style="color:#0f0;font-family:monospace;white-space:pre-wrap"></div>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/screener.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/backtest.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  var log = [];
+  function L(msg) { log.push(msg); document.getElementById('testlog').textContent = log.join('\n'); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function fire(el, evt) {
+    if (!el) return false;
+    el.dispatchEvent(new Event(evt, { bubbles: true }));
+    return true;
+  }
+  function clickAct(sel) {
+    var el = document.querySelector(sel);
+    if (!el) { L('MISSING: ' + sel); return false; }
+    el.click();
+    return true;
+  }
+  var errors = [];
+  window.addEventListener('error', function (e) { errors.push('ERR: ' + e.message + ' @' + e.filename + ':' + e.lineno); });
+  window.addEventListener('unhandledrejection', function (e) { errors.push('REJ: ' + e.reason); });
+
+  async function run() {
+    await sleep(1200);
+    if (!document.getElementById('app').classList.contains('on')) { L('FAIL: 自动登录未生效'); finish(); return; }
+    L('OK: 自动登录生效');
+
+    // 1 仪表盘
+    location.hash = '#/dashboard'; await sleep(700);
+    L(canvasCount('仪表盘') + ' | ' + (document.querySelector('.kpis') ? 'KPI OK' : 'KPI MISS'));
+
+    // 2 行情中心
+    location.hash = '#/market'; await sleep(700);
+    L(canvasCount('行情') + ' | 行数:' + document.querySelectorAll('#mkBody tr').length);
+
+    // 3 条件选股:载入模板 -> 命名 -> 保存 -> 运行
+    location.hash = '#/screener'; await sleep(700);
+    clickAct('[data-act="tpl"][data-tpl="低估值高股息"]'); await sleep(300);
+    var nameInput = document.getElementById('strategyName');
+    nameInput.value = '无头测试策略';
+    clickAct('[data-act="save-strategy"]'); await sleep(300);
+    clickAct('[data-act="run-strategy"]'); await sleep(600);
+    var hit = document.querySelector('#resTools .chip');
+    L('选股命中: ' + (hit ? hit.textContent : 'MISS') + ' | 结果行:' + document.querySelectorAll('#resBody tbody tr').length);
+
+    // 4 股票详情各标签
+    location.hash = '#/stock/600519'; await sleep(800);
+    L('详情行情: ' + (document.getElementById('chart-kline') ? canvasCount('K线') : 'MISS'));
+    location.hash = '#/stock/600519/fin'; await sleep(600);
+    L('财务: ' + (document.getElementById('chart-fin-trend') ? canvasCount('财务图') : 'MISS') + ' | 表格行:' + document.querySelectorAll('.fin-table tbody tr').length);
+    location.hash = '#/stock/600519/fund'; await sleep(600);
+    L('资金: ' + (document.getElementById('chart-ff') ? 'OK' : 'MISS'));
+    location.hash = '#/stock/600519/holder'; await sleep(600);
+    L('股东: ' + (document.querySelectorAll('#stockPane tbody tr').length > 0 ? 'OK' : 'MISS'));
+    location.hash = '#/stock/600519/news'; await sleep(600);
+    L('新闻: ' + document.querySelectorAll('.news-item').length + ' 条');
+    location.hash = '#/stock/600519/div'; await sleep(600);
+    L('分红: ' + document.querySelectorAll('#stockPane tbody tr').length + ' 行');
+    location.hash = '#/stock/600519/ai'; await sleep(600);
+    L('AI报告: ' + (document.querySelector('.score-ring') ? '评分环 OK' : 'MISS'));
+
+    // 5 自选股
+    location.hash = '#/watchlist'; await sleep(700);
+    clickAct('[data-act="goto-stock"]'); // 若空则不触发
+    await sleep(300);
+    L('自选: ' + document.querySelectorAll('#content tbody tr').length + ' 行');
+
+    // 6 AI 对话
+    location.hash = '#/chat'; await sleep(700);
+    var inp = document.getElementById('chatInput');
+    if (inp) { inp.value = '它现在估值高不高?'; clickAct('[data-act="chat-send"]'); }
+    await sleep(1800);
+    L('对话: ' + document.querySelectorAll('.chat-msg').length + ' 条消息');
+
+    // 7 回测
+    location.hash = '#/backtest'; await sleep(700);
+    var btSel = document.getElementById('btStrategy');
+    var opt = btSel.querySelector('option[value]');
+    if (opt && opt.value) { btSel.value = opt.value; fire(btSel, 'change'); }
+    clickAct('[data-act="bt-run"]'); await sleep(1500);
+    L('回测: ' + (document.querySelector('.bt-metrics') ? '指标 OK' : 'MISS') + ' | 成交:' + (document.querySelectorAll('#btResult tbody tr').length || 0) + ' 笔');
+
+    // 8 提醒 & 设置
+    location.hash = '#/alerts'; await sleep(600);
+    L('提醒页 OK');
+    location.hash = '#/settings'; await sleep(600);
+    L('设置页 OK');
+
+    L('CANVAS总数: ' + document.querySelectorAll('canvas').length);
+    if (errors.length) { L('JS错误:\n' + errors.join('\n')); }
+    finish();
+  }
+  function canvasCount(tag) { var n = document.querySelectorAll('canvas').length; return tag + '画布:' + n; }
+  function finish() {
+    document.title = errors.length ? 'TEST_FAIL' : 'TEST_OK';
+    L('DONE ' + document.title);
+  }
+  setTimeout(run, 400);
+})();
+</script>
+</body>
+</html>

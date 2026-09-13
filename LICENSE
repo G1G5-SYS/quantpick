@@ -1,0 +1,35 @@
+MIT License
+
+Copyright (c) 2026 QuantPick
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 免责声明 / Disclaimer（重要）
+
+本项目是**技术研究与学习用途**的开源软件，**不是投资顾问，不构成任何投资建议**。
+
+- 本软件展示的全部行情、财务、资金与新闻数据，均来自第三方公开接口（东方财富、腾讯财经等），
+  其准确性、完整性与时效性由数据源负责；使用者需自行遵守各数据源的服务条款。
+- 软件中的预测、评分、回测与复盘结果，均为**透明规则模型的统计输出**，
+  **不代表未来收益，不构成买卖建议**。历史回测与历史命中率不代表未来表现。
+- 在中国境内，从事证券投资咨询业务需要相应资质。本项目**不提供任何形式的荐股服务**，
+  仅提供数据处理与统计计算工具。请勿将本软件用于任何需要持牌的经营活动。
+- 股市有风险，投资需谨慎。**据此操作，风险自担。**
