@@ -3,7 +3,7 @@
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与
 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [1.0.1] - 2026-09-13
 
 ### 修复
 
@@ -54,5 +54,5 @@
 - 预测按真实交易日历锁定、快照存服务端、收盘后自动复盘
 - 自带回归测试（jsdom 驱动真实页面与数据服务）
 
-[Unreleased]: https://github.com/G1G5-SYS/quantpick/commits/main
+[1.0.1]: https://github.com/G1G5-SYS/quantpick/releases/tag/v1.0.1
 [1.0.0]: https://github.com/G1G5-SYS/quantpick/releases/tag/v1.0.0
