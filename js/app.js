@@ -599,19 +599,19 @@
         const cid = 'idx-mini-' + ix.code;
         return '<div class="panel hoverable" style="padding:14px 16px;cursor:pointer" data-act="chart-idx" data-i="' + i + '">' +
           '<div class="flex items-center gap-8"><span style="font-size:12.5px;color:var(--txt-2)">' + ix.name + '</span>' +
-          '<span class="chip gray" style="margin-left:auto">' + ix.market + '</span></div>' +
+          '<span class="chip gray" style="margin-left:auto">' + (ix.market || '指数') + '</span></div>' +
           '<div class="num" style="font-size:22px;font-weight:700;margin-top:4px" id="idxPx-' + ix.code + '">' + (ix.quote.price != null ? ix.quote.price.toFixed(2) : '--') + '</div>' +
           '<div class="num ' + upTxt(ix.quote.chgPct) + '" style="font-size:12.5px" id="idxChg-' + ix.code + '">' + (ix.quote.chgPct != null ? D.fmtPct(ix.quote.chgPct) : '--') + '  ' + (ix.quote.amount ? D.fmtMoney(ix.quote.amount) : '--') + '</div>' +
           '<div class="mini-chart" id="' + cid + '"></div></div>';
       }).join('');
 
       const kpiHTML = '<div class="kpis">' +
-        kpi('上涨家数', '<span class="num" id="ovUp">' + ov.up + '</span>', '占比 ' + ov.upPct + '%', 'up', 'M12 19V5M5 12l7-7 7 7') +
-        kpi('下跌家数', '<span class="num" id="ovDown">' + ov.down + '</span>', '占比 ' + ov.downPct + '%', 'down', 'M12 5v14M19 12l-7 7-7-7') +
+        kpi('上涨家数', '<span class="num" id="ovUp">' + ov.up + '</span>', '占比 ' + (ov.upPct != null ? ov.upPct + '%' : '--'), 'up', 'M12 19V5M5 12l7-7 7 7') +
+        kpi('下跌家数', '<span class="num" id="ovDown">' + ov.down + '</span>', '占比 ' + (ov.downPct != null ? ov.downPct + '%' : '--'), 'down', 'M12 5v14M19 12l-7 7-7-7') +
         kpi('涨停 / 跌停', '<span class="num"><span id="ovLU" class="up-txt">' + ov.limitUp + '</span> / <span id="ovLD" class="down-txt">' + ov.limitDown + '</span></span>', '全市场统计', 'limit', 'M13 2L3 14h9l-1 8 10-12h-9z') +
         kpi('两市成交额', '<span class="num" id="ovAmt">' + fmtBig(ov.amount) + '</span>', '全市场合计', 'amt', 'M3 3v18h18M7 15l4-6 4 3 5-8') +
         kpi('主力净流入', '<span class="num" id="ovMain" class="' + (ov.mainNet >= 0 ? 'up-txt' : 'down-txt') + '">' + fmt(ov.mainNet) + '</span>', '样本池合计', 'main', 'M3 17l5-5 4 3 6-7M14 8h4v4') +
-        kpi('市场温度', '<span class="num" id="ovTemp">' + Math.round(ov.breadth) + '</span>', '上涨占比 ' + ov.breadth + '%', 'temp', 'M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M19.1 4.9l-2.8 2.8M7.7 16.3l-2.8 2.8') +
+        kpi('市场温度', '<span class="num" id="ovTemp">' + Math.round(ov.breadth || 0) + '</span>', '上涨占比 ' + (ov.breadth != null ? ov.breadth + '%' : '--'), 'temp', 'M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M19.1 4.9l-2.8 2.8M7.7 16.3l-2.8 2.8') +
         '</div>';
       function kpi(label, val, sub, tone, ico) {
         const bg = { up: 'rgba(245,34,45,.14)', down: 'rgba(0,181,120,.14)', limit: 'rgba(245,179,1,.15)', amt: 'rgba(245,179,1,.16)', main: 'rgba(230,48,48,.16)', temp: 'rgba(245,179,1,.16)' }[tone];

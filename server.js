@@ -239,9 +239,10 @@ function secidOf(code) { return /^[69]/.test(code) ? '1.' + code : '0.' + code; 
 function tencentSym(code) { return /^[69]/.test(code) ? 'sh' + code : 'sz' + code; }
 
 const INDEX_LIST = [
-  ['000001', '上证指数', '1.000001', 'sh000001'], ['399001', '深证成指', '0.399001', 'sz399001'],
-  ['399006', '创业板指', '0.399006', 'sz399006'], ['000688', '科创50', '1.000688', 'sh000688'],
-  ['000300', '沪深300', '1.000300', 'sh000300'], ['000905', '中证500', '1.000905', 'sh000905']
+  /* [代码, 名称, 东财secid, 腾讯代码, 市场标签(界面直接展示,缺失会显示 undefined)] */
+  ['000001', '上证指数', '1.000001', 'sh000001', '沪市'], ['399001', '深证成指', '0.399001', 'sz399001', '深市'],
+  ['399006', '创业板指', '0.399006', 'sz399006', '深市'], ['000688', '科创50', '1.000688', 'sh000688', '沪市'],
+  ['000300', '沪深300', '1.000300', 'sh000300', '跨市场'], ['000905', '中证500', '1.000905', 'sh000905', '跨市场']
 ];
 
 /* ---------------- 实时行情:东财(带镜像) → 腾讯兜底 ---------------- */
@@ -325,21 +326,19 @@ async function apiQuotes(codes) {
 }
 
 async function apiIndices() {
+  const shape = (code, name, market, d) => ({
+    code, name, market,
+    quote: { price: d ? d.price : null, chg: d ? d.chg : null, chgPct: d ? d.chgPct : null, amount: d ? d.amount : null, volume: d ? d.volume : null }
+  });
   try {
     const qs = await cached('q:idx', 3000, () => emQuotes(INDEX_LIST.map(x => x[2])));
     if (qs.length >= 6) {
-      return INDEX_LIST.map(([code, name]) => {
-        const d = qs.find(x => x.code === code);
-        return { code, name, quote: { price: d ? d.price : null, chg: d ? d.chg : null, chgPct: d ? d.chgPct : null, amount: d ? d.amount : null, volume: d ? d.volume : null } };
-      });
+      return INDEX_LIST.map(([code, name, , , market]) => shape(code, name, market, qs.find(x => x.code === code)));
     }
     throw new Error('指数数据不可用');
   } catch (e) {
     const qs = await cached('tq:idx', 2000, () => tencentQuotes(INDEX_LIST.map(x => x[3])));
-    return INDEX_LIST.map(([code, name]) => {
-      const d = qs.find(x => x.code === code);
-      return { code, name, quote: { price: d ? d.price : null, chg: d ? d.chg : null, chgPct: d ? d.chgPct : null, amount: d ? d.amount : null, volume: d ? d.volume : null } };
-    });
+    return INDEX_LIST.map(([code, name, , , market]) => shape(code, name, market, qs.find(x => x.code === code)));
   }
 }
 
@@ -645,6 +644,9 @@ async function apiOverview() {
   const total = up + down + flat;
   return {
     total: all.total, up, down, flat, limitUp, limitDown,
+    /* upPct/downPct:界面 KPI 直接展示"占比 X%",缺这两个字段会显示 "占比 undefined%"(已修复的真实缺陷) */
+    upPct: total ? +(up / total * 100).toFixed(1) : 0,
+    downPct: total ? +(down / total * 100).toFixed(1) : 0,
     amount, mainNet, breadth: total ? +(up / total * 100).toFixed(1) : 0
   };
 }
